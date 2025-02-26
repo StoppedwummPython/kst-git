@@ -66,21 +66,11 @@ def push():
     remote_path = repo_config["path"]
 
     def ensure_remote_directory(remote_dir):
-        # Always ensure the remote directory path ends with a slash
-        if not remote_dir.endswith('/'):
-            remote_dir += '/'
-        parts = remote_dir.split('/')
-        current = ""
-        for part in parts:
-            if part:  # skip empty parts from leading '/'
-                current += "/" + part
-                # Always check with trailing slash so that it is recognized as a directory.
-                current_slash = current + "/"
-                if not client.is_dir(current_slash):
-                    try:
-                        client.mkdir(current_slash)
-                    except Exception as e:
-                        click.echo(click.style(f"Error creating directory {current_slash}: {e}", fg="red"))
+        try:
+            client.mkdir(remote_dir)
+        except Exception as e:
+            pass
+
 
     for root, _, files in os.walk(copy_dir):
         for file in files:

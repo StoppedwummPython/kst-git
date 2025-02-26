@@ -67,8 +67,11 @@ def push():
         for file in files:
             local_file_path = path.join(root, file)
             relative_path = path.relpath(local_file_path, copy_dir)
-            remote_file_path = path.join(remote_path, relative_path)
+            remote_file_path = path.join(remote_path, relative_path).replace("\\", "/")
+            remote_dir_path = path.dirname(remote_file_path)
             try:
+                if not client.is_dir(remote_dir_path):
+                    client.makedirs(remote_dir_path) # Create parent directories if they don't exist
                 client.upload_file(remote_file_path, local_file_path)
                 click.echo(f"Uploaded: {relative_path}")
             except Exception as e:

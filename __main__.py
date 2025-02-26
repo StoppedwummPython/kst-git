@@ -120,7 +120,7 @@ def diff():
     if path.exists(path.join(cwd, ".kst-git", "copy")):
         shutil.rmtree(path.join(cwd, ".kst-git", "copy"), ignore_errors=True)
     # pull from server
-    click.echo("Downloading server version...")
+    click.echo("Downloading server version...", color="yellow")
     client.download_directory(repo_config["path"], path.join(cwd, ".kst-git", "copy"))
     click.echo("Comparing local changes...")
 

@@ -27,7 +27,7 @@ jobs:
             - name: Upload artifact
               uses: actions/upload-artifact@v4
               with:
-                  name: bin
+                  name: bin-ubuntu
                   path: bin
     build-mac:
         runs-on: osx-latest
@@ -50,5 +50,24 @@ jobs:
             - name: Upload artifact
               uses: actions/upload-artifact@v4
               with:
-                  name: bin
+                  name: bin-mac
                   path: bin
+    build-win:
+        runs-on: osx-latest
+        steps:
+            - uses: actions/checkout@v2
+            # setup python
+            - name: Set up Python 3.8
+              uses: actions/setup-python@v2
+              with:
+                  python-version: 3.8
+            - name: Build binaries
+              run: |
+                  pip install -r requirements.txt
+                  pip install pyinstaller
+                  pyinstaller --onefile __main__.py
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: bin-win
+                  path: dist

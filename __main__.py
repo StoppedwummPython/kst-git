@@ -1,4 +1,4 @@
-from webdav3.client import Client
+from webdav4.client import Client
 from os import path
 import os
 import configReader
@@ -25,7 +25,7 @@ options = {
     'webdav_login': config.getConfig()["username"],
     'webdav_password': config.getConfig()["password"]
 }
-client = Client(options)
+client = Client(options["webdav_hostname"], auth=(options["webdav_login"], options["webdav_password"]))
 
 @click.group()
 def cli():
@@ -106,7 +106,15 @@ def pull():
                 elif path.isdir(item_path):
                     shutil.rmtree(item_path)
 
-        client.download_directory(remote_path, cwd)
+        # loop through every file and download it
+        # fuck you webdav4 for not having a recursive download function
+        for file in client.ls(remote_path):
+            remote_file_path = path.join(remote_path, file)
+            local_file_path = path.join(cwd, file)
+            os.makedirs(path.dirname(local_file_path), exist_ok=True)
+            client.download_file(remote_file_path, local_file_path)
+            click.echo(f"Downloaded: {file}")
+            
         click.echo(click.style("Pull complete. Local repository updated to latest version.", fg="green"))
     except Exception as e:
         click.echo(click.style(f"Pull failed: {e}", fg="red"))
@@ -119,9 +127,32 @@ def diff():
         repo_config = json.load(f)
     if path.exists(path.join(cwd, ".kst-git", "copy")):
         shutil.rmtree(path.join(cwd, ".kst-git", "copy"), ignore_errors=True)
+    remote_path = repo_config["path"]
     # pull from server
     click.echo("Downloading server version...", color="yellow")
-    client.download_directory(repo_config["path"], path.join(cwd, ".kst-git", "copy"))
+    # loop through every file and download it
+    # fuck you webdav4 for not having a recursive download function
+    def loopThrough(p):
+        global folder
+        for _ in client.ls(p):
+            file = ""
+            folder = False
+            if type(_) == "str":
+                continue
+            elif type(_) == "dict":
+                file = _["name"]
+                folder = True
+        if folder:
+            loopThrough(path.join(p, file))
+        else:
+            remote_file_path = path.join(p, file)
+            local_file_path = path.join(path.join(cwd, ".kst-git", "copy"), file)
+            print(local_file_path, remote_file_path)
+            os.makedirs(path.dirname(local_file_path), exist_ok=True)
+            client.download_file(remote_file_path, local_file_path)
+            click.echo(f"Downloaded: {file}")
+
+    loopThrough(remote_path)
     click.echo("Comparing local changes...")
 
     local_dir = cwd

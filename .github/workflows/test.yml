@@ -30,7 +30,7 @@ jobs:
                   name: bin-ubuntu
                   path: bin
     build-mac:
-        runs-on: osx-latest
+        runs-on: macos-latest
         steps:
             - uses: actions/checkout@v2
             # setup python
@@ -53,7 +53,7 @@ jobs:
                   name: bin-mac
                   path: bin
     build-win:
-        runs-on: osx-latest
+        runs-on: windows-latest
         steps:
             - uses: actions/checkout@v2
             # setup python

@@ -1,16 +1,22 @@
-name: test
+name: Build binaries
 
 on:
-    pull_request:
     push:
+        branches:
+            - main
 
 jobs:
-    test:
+    build:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
-            - uses: actions/setup-node@v3
-                with:
-                    node-version: 16
-            - run: npm install
-            - run: npm test
+            - uses: actions/checkout@v2
+            # setup python
+            - name: Set up Python 3.8
+              uses: actions/setup-python@v2
+              with:
+                  python-version: 3.8
+            - name: Build binaries
+              run: |
+                  pip install -r requirements.txt
+                  pip install pyinstaller
+                  pyinstaller --onefile __main__.py

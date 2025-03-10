@@ -69,8 +69,7 @@ def push():
         try:
             client.mkdir(remote_dir)
         except Exception as e:
-            pass
-
+            click.echo(click.style(f"Error ensuring remote directory {remote_dir}: {e}", fg="red"))
 
     for root, _, files in os.walk(copy_dir):
         for file in files:
@@ -106,15 +105,24 @@ def pull():
                 elif path.isdir(item_path):
                     shutil.rmtree(item_path)
 
-        # loop through every file and download it
-        # fuck you webdav4 for not having a recursive download function
-        for file in client.ls(remote_path):
-            remote_file_path = path.join(remote_path, file)
-            local_file_path = path.join(cwd, file)
-            os.makedirs(path.dirname(local_file_path), exist_ok=True)
-            client.download_file(remote_file_path, local_file_path)
-            click.echo(f"Downloaded: {file}")
-            
+        # Recursive function to download all files and directories
+        def download_recursive(remote_dir, local_dir):
+            for item in client.ls(remote_dir):
+                if isinstance(item, str):
+                    continue
+                elif isinstance(item, dict):
+                    if item['type'] == 'directory':
+                        os.makedirs(path.join(local_dir, item['name']), exist_ok=True)
+                        download_recursive(path.join(remote_dir, item['name']), path.join(local_dir, item['name']))
+                    else:
+                        remote_file_path = path.join(remote_dir, item['name'])
+                        local_file_path = path.join(local_dir, item['name'])
+                        client.download_file(remote_file_path, local_file_path)
+                        click.echo(f"Downloaded: {item['name']}")
+
+        # Start the recursive download
+        download_recursive(remote_path, cwd)
+
         click.echo(click.style("Pull complete. Local repository updated to latest version.", fg="green"))
     except Exception as e:
         click.echo(click.style(f"Pull failed: {e}", fg="red"))
@@ -128,31 +136,26 @@ def diff():
     if path.exists(path.join(cwd, ".kst-git", "copy")):
         shutil.rmtree(path.join(cwd, ".kst-git", "copy"), ignore_errors=True)
     remote_path = repo_config["path"]
-    # pull from server
     click.echo("Downloading server version...", color="yellow")
-    # loop through every file and download it
-    # fuck you webdav4 for not having a recursive download function
-    def loopThrough(p):
-        global folder
-        for _ in client.ls(p):
-            file = ""
-            folder = False
-            if type(_) == "str":
-                continue
-            elif type(_) == "dict":
-                file = _["name"]
-                folder = True
-        if folder:
-            loopThrough(path.join(p, file))
-        else:
-            remote_file_path = path.join(p, file)
-            local_file_path = path.join(path.join(cwd, ".kst-git", "copy"), file)
-            print(local_file_path, remote_file_path)
-            os.makedirs(path.dirname(local_file_path), exist_ok=True)
-            client.download_file(remote_file_path, local_file_path)
-            click.echo(f"Downloaded: {file}")
 
-    loopThrough(remote_path)
+    # Recursive function to download all files and directories
+    def download_recursive(remote_dir, local_dir):
+        for item in client.ls(remote_dir):
+            if isinstance(item, str):
+                continue
+            elif isinstance(item, dict):
+                if item['type'] == 'directory':
+                    os.makedirs(path.join(local_dir, item['name']), exist_ok=True)
+                    download_recursive(path.join(remote_dir, item['name']), path.join(local_dir, item['name']))
+                else:
+                    remote_file_path = path.join(remote_dir, item['name'])
+                    local_file_path = path.join(local_dir, item['name'])
+                    client.download_file(remote_file_path, local_file_path)
+                    click.echo(f"Downloaded: {item['name']}")
+
+    # Start the recursive download for diff command
+    download_recursive(remote_path, path.join(cwd, ".kst-git", "copy"))
+
     click.echo("Comparing local changes...")
 
     local_dir = cwd
